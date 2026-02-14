@@ -1,0 +1,149 @@
+import { Bot } from "grammy";
+import { ethers } from "ethers";
+import type { Queries } from "../db/queries.js";
+import type { Trade } from "../types/index.js";
+import { formatTradeAlert, formatTradeHistory } from "./alertFormatter.js";
+
+export class TelegramBot {
+  private bot: Bot;
+  private queries: Queries;
+
+  constructor(token: string, queries: Queries) {
+    this.bot = new Bot(token);
+    this.queries = queries;
+    this.registerCommands();
+  }
+
+  private registerCommands(): void {
+    this.bot.command("start", (ctx) => {
+      const msg =
+        `👋 <b>Polymarket Wallet Tracker</b>\n\n` +
+        `Track Polymarket trades from any wallet and get real-time alerts.\n\n` +
+        `<b>Commands:</b>\n` +
+        `/watch &lt;address&gt; [label] — Start tracking a wallet\n` +
+        `/unwatch &lt;address&gt; — Stop tracking a wallet\n` +
+        `/list — Show tracked wallets\n` +
+        `/history [count] — Recent trade history\n` +
+        `/status — Bot status`;
+      return ctx.reply(msg, { parse_mode: "HTML" });
+    });
+
+    this.bot.command("watch", (ctx) => {
+      const text = ctx.message?.text ?? "";
+      const parts = text.split(/\s+/).slice(1);
+      const address = parts[0];
+      const label = parts.slice(1).join(" ") || "";
+
+      if (!address) {
+        return ctx.reply("Usage: /watch <address> [label]");
+      }
+
+      if (!ethers.isAddress(address)) {
+        return ctx.reply("❌ Invalid Ethereum address.");
+      }
+
+      const chatId = ctx.chat.id.toString();
+      const added = this.queries.addWallet(chatId, address, label);
+
+      if (added) {
+        const displayLabel = label ? ` (${label})` : "";
+        return ctx.reply(
+          `✅ Now watching <code>${address}</code>${displayLabel}`,
+          { parse_mode: "HTML" }
+        );
+      }
+      return ctx.reply("ℹ️ This address is already being watched.");
+    });
+
+    this.bot.command("unwatch", (ctx) => {
+      const text = ctx.message?.text ?? "";
+      const address = text.split(/\s+/)[1];
+
+      if (!address) {
+        return ctx.reply("Usage: /unwatch <address>");
+      }
+
+      const chatId = ctx.chat.id.toString();
+      const removed = this.queries.removeWallet(chatId, address);
+
+      if (removed) {
+        return ctx.reply(
+          `✅ Stopped watching <code>${address}</code>`,
+          { parse_mode: "HTML" }
+        );
+      }
+      return ctx.reply("ℹ️ This address was not being watched.");
+    });
+
+    this.bot.command("list", (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const wallets = this.queries.listWallets(chatId);
+
+      if (wallets.length === 0) {
+        return ctx.reply("No wallets being tracked. Use /watch to add one.");
+      }
+
+      let msg = `📋 <b>Watched Wallets</b> (${wallets.length})\n\n`;
+      for (const w of wallets) {
+        const label = w.label ? ` — ${w.label}` : "";
+        msg += `• <code>${w.address}</code>${label}\n`;
+      }
+
+      return ctx.reply(msg, { parse_mode: "HTML" });
+    });
+
+    this.bot.command("history", (ctx) => {
+      const text = ctx.message?.text ?? "";
+      const countStr = text.split(/\s+/)[1];
+      let count = parseInt(countStr || "10", 10);
+      if (isNaN(count) || count < 1) count = 10;
+      if (count > 50) count = 50;
+
+      const chatId = ctx.chat.id.toString();
+      const trades = this.queries.getTradeHistory(chatId, undefined, count);
+      const msg = formatTradeHistory(trades);
+
+      return ctx.reply(msg, { parse_mode: "HTML" });
+    });
+
+    this.bot.command("status", (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const wallets = this.queries.listWallets(chatId);
+
+      const msg =
+        `🤖 <b>Bot Status</b>\n\n` +
+        `Tracked wallets: ${wallets.length}\n` +
+        `Status: Running`;
+
+      return ctx.reply(msg, { parse_mode: "HTML" });
+    });
+  }
+
+  async sendTradeAlert(
+    trade: Trade,
+    chatId: string,
+    label?: string
+  ): Promise<void> {
+    const msg = formatTradeAlert(trade, label);
+    try {
+      await this.bot.api.sendMessage(chatId, msg, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+      });
+    } catch (err) {
+      console.error(`[TelegramBot] Failed to send alert to ${chatId}:`, err);
+    }
+  }
+
+  async startPolling(): Promise<void> {
+    console.log("[TelegramBot] Starting bot polling...");
+    this.bot.start({
+      onStart: () => console.log("[TelegramBot] Bot is running"),
+    });
+  }
+
+  stop(): void {
+    this.bot.stop();
+    console.log("[TelegramBot] Bot stopped");
+  }
+}
