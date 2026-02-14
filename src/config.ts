@@ -13,11 +13,13 @@ export function loadConfig(): Config {
   }
 
   const dbPath = process.env.DB_PATH ?? "./data/bot.db";
+  const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || undefined;
 
   return {
     telegramBotToken,
     adminChatId,
     pollIntervalMs,
     dbPath,
+    discordWebhookUrl,
   };
 }

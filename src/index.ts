@@ -3,6 +3,7 @@ import { initDatabase } from "./db/database.js";
 import { Queries } from "./db/queries.js";
 import { ActivityMonitor } from "./services/activityMonitor.js";
 import { getCurrentPrice } from "./services/priceService.js";
+import { sendDiscordWebhook } from "./services/discordWebhook.js";
 import { TelegramBot } from "./bot/telegramBot.js";
 import type { Trade } from "./types/index.js";
 
@@ -37,8 +38,13 @@ async function main() {
       // Save to DB
       queries.insertTrade(chat_id, trade.walletAddress, trade);
 
-      // Send alert
+      // Send Telegram alert
       await bot.sendTradeAlert(enrichedTrade, chat_id, label);
+
+      // Send Discord webhook if configured
+      if (config.discordWebhookUrl) {
+        await sendDiscordWebhook(config.discordWebhookUrl, enrichedTrade, label);
+      }
     }
   });
 

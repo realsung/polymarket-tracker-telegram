@@ -3,6 +3,7 @@ export interface Config {
     adminChatId: string;
     pollIntervalMs: number;
     dbPath: string;
+    discordWebhookUrl?: string;
 }
 export type TradeSide = "BUY" | "SELL";
 /** Raw response from Polymarket Data API /activity endpoint */

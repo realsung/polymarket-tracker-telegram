@@ -5,6 +5,7 @@ const database_js_1 = require("./db/database.js");
 const queries_js_1 = require("./db/queries.js");
 const activityMonitor_js_1 = require("./services/activityMonitor.js");
 const priceService_js_1 = require("./services/priceService.js");
+const discordWebhook_js_1 = require("./services/discordWebhook.js");
 const telegramBot_js_1 = require("./bot/telegramBot.js");
 async function main() {
     console.log("🚀 Starting Polymarket Wallet Tracker Bot...");
@@ -29,8 +30,12 @@ async function main() {
             const enrichedTrade = { ...trade, currentPrice: currentPrice ?? undefined };
             // Save to DB
             queries.insertTrade(chat_id, trade.walletAddress, trade);
-            // Send alert
+            // Send Telegram alert
             await bot.sendTradeAlert(enrichedTrade, chat_id, label);
+            // Send Discord webhook if configured
+            if (config.discordWebhookUrl) {
+                await (0, discordWebhook_js_1.sendDiscordWebhook)(config.discordWebhookUrl, enrichedTrade, label);
+            }
         }
     });
     // 5. Start services

@@ -18,6 +18,7 @@ cp .env.example .env
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
+| `DISCORD_WEBHOOK_URL` | *(empty)* | Discord 웹훅 URL (설정 시 Discord로도 알림 전송) |
 | `ADMIN_CHAT_ID` | *(empty)* | 관리자 텔레그램 채팅 ID |
 | `POLL_INTERVAL_MS` | `10000` | API 폴링 간격 (밀리초, 최소 1000) |
 | `DB_PATH` | `./data/bot.db` | SQLite 데이터베이스 파일 경로 |
@@ -36,6 +37,16 @@ cp .env.example .env
 3. 응답의 `result[0].message.chat.id` 값이 Chat ID
 
 또는 [@userinfobot](https://t.me/userinfobot)에게 `/start`를 보내면 바로 확인 가능.
+
+## Discord Webhook 설정 (선택)
+
+Discord 채널에도 알림을 받으려면:
+
+1. Discord 서버에서 채널 설정 → 연동 → 웹후크 생성
+2. 웹훅 URL 복사
+3. `DISCORD_WEBHOOK_URL` 환경 변수에 입력
+
+웹훅이 설정되어 있으면 텔레그램 알림과 함께 Discord에도 자동으로 전송됩니다. Discord 알림은 embed 형식으로 표시되어 더 보기 좋게 정리됩니다.
 
 ## Polling Interval 조정
 

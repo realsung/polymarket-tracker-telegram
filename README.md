@@ -9,7 +9,8 @@ Polymarket 지갑 주소를 모니터링하여, 예측 시장 거래(매수/매�
 - **Polymarket Data API 기반** — `/activity` 엔드포인트로 거래 감지 (RPC 불필요)
 - **다중 지갑 추적** — 여러 지갑 주소를 동시에 모니터링
 - **자동 마켓 매핑** — API 응답에 마켓 제목, 아웃컴(Yes/No), 가격이 포함
-- **텔레그램 알림** — BUY/SELL, 수량, 가격, 마켓 링크가 포함된 상세 알림
+- **텔레그램 & Discord 알림** — BUY/SELL, 수량, 가격, 현재 시장가, 마켓 링크가 포함된 상세 알림
+- **현재 시장가 표시** — 체결가와 현재 호가를 비교하여 수익률 표시
 - **중복 방지** — tx_hash 기반 중복 알림 방지
 - **Crash Recovery** — timestamp 커서를 DB에 저장하여 재시작 시 이어서 처리
 
@@ -46,6 +47,7 @@ DB_PATH=./data/bot.db
 | 변수 | 필수 | 설명 |
 |------|------|------|
 | `TELEGRAM_BOT_TOKEN` | O | 텔레그램 봇 토큰 |
+| `DISCORD_WEBHOOK_URL` | X | Discord 웹훅 URL (설정 시 Discord로도 알림 전송) |
 | `ADMIN_CHAT_ID` | X | 관리자 채팅 ID |
 | `POLL_INTERVAL_MS` | X | API 폴링 간격 (기본: 10000ms) |
 | `DB_PATH` | X | SQLite DB 파일 경로 (기본: `./data/bot.db`) |
@@ -80,17 +82,22 @@ docker compose up -d
 
 ## Alert Example
 
+### Telegram
 ```
 🟢 BOUGHT Yes
 
 📊 Market: "Will Trump win the 2024 election?"
 💰 Amount: 1,000.00 shares @ $0.6500
 💵 Total: $650.00
+📈 Current: $0.7200 (+10.8%)
 
 👛 Wallet: GCR (0xABC...DEF)
 
 View Market | View Tx
 ```
+
+### Discord
+Discord 웹훅을 설정하면 같은 정보가 Discord embed 형식으로도 전송됩니다.
 
 ## Architecture
 

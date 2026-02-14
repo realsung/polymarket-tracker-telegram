@@ -12,11 +12,13 @@ function loadConfig() {
         throw new Error("POLL_INTERVAL_MS must be a number >= 1000");
     }
     const dbPath = process.env.DB_PATH ?? "./data/bot.db";
+    const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || undefined;
     return {
         telegramBotToken,
         adminChatId,
         pollIntervalMs,
         dbPath,
+        discordWebhookUrl,
     };
 }
 //# sourceMappingURL=config.js.map
