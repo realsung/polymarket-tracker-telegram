@@ -135,6 +135,7 @@ class ActivityMonitor {
                 price: activity.price,
                 conditionId: activity.conditionId,
                 activityType: activity.type,
+                asset: activity.asset || "",
             };
         }
         catch {

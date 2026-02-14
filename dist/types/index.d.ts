@@ -41,6 +41,8 @@ export interface Trade {
     price: number;
     conditionId: string;
     activityType: string;
+    asset: string;
+    currentPrice?: number;
 }
 export interface WatchedWallet {
     id: number;

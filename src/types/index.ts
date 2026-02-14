@@ -44,6 +44,8 @@ export interface Trade {
   price: number;
   conditionId: string;
   activityType: string;
+  asset: string; // CLOB token ID for current price lookup
+  currentPrice?: number; // current market price at alert time
 }
 
 export interface WatchedWallet {

@@ -39,6 +39,14 @@ function formatTradeAlert(trade, label) {
     msg += `\n📊 <b>Market:</b> "${question}"\n`;
     msg += `💰 <b>Amount:</b> ${shares} shares @ $${price}\n`;
     msg += `💵 <b>Total:</b> $${total}\n`;
+    if (trade.currentPrice != null) {
+        const cur = formatNumber(trade.currentPrice, 4);
+        const diff = trade.currentPrice - trade.price;
+        const pct = trade.price > 0 ? (diff / trade.price) * 100 : 0;
+        const sign = diff >= 0 ? "+" : "";
+        const arrow = diff > 0 ? "📈" : diff < 0 ? "📉" : "➡️";
+        msg += `${arrow} <b>Current:</b> $${cur} (${sign}${pct.toFixed(1)}%)\n`;
+    }
     msg += `\n👛 <b>Wallet:</b> ${walletDisplay}\n`;
     msg += "\n";
     if (marketUrl) {
