@@ -30,23 +30,40 @@ export interface Position {
 
 export async function getUserPositions(
   address: string,
-  limit: number = 20
+  fetchAll: boolean = true
 ): Promise<Position[]> {
-  const params = new URLSearchParams({
-    user: address,
-    limit: limit.toString(),
-    sortBy: "CASHPNL",
-    sortDirection: "DESC",
-  });
+  const positions: Position[] = [];
+  let offset = 0;
+  const batchSize = 500; // API maximum
 
-  const url = `${POLYMARKET_DATA_API}/positions?${params}`;
-  const response = await fetch(url);
+  while (true) {
+    const params = new URLSearchParams({
+      user: address,
+      limit: batchSize.toString(),
+      offset: offset.toString(),
+      sortBy: "CASHPNL",
+      sortDirection: "DESC",
+    });
 
-  if (!response.ok) {
-    throw new Error(
-      `Polymarket Data API returned ${response.status}: ${await response.text()}`
-    );
+    const url = `${POLYMARKET_DATA_API}/positions?${params}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `Polymarket Data API returned ${response.status}: ${await response.text()}`
+      );
+    }
+
+    const batch = (await response.json()) as Position[];
+    positions.push(...batch);
+
+    // If we got less than batchSize, we've reached the end
+    if (batch.length < batchSize || !fetchAll) {
+      break;
+    }
+
+    offset += batchSize;
   }
 
-  return (await response.json()) as Position[];
+  return positions;
 }

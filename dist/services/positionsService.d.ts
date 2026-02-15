@@ -25,4 +25,4 @@ export interface Position {
     endDate: string;
     negativeRisk: boolean;
 }
-export declare function getUserPositions(address: string, limit?: number): Promise<Position[]>;
+export declare function getUserPositions(address: string, fetchAll?: boolean): Promise<Position[]>;

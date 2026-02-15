@@ -167,10 +167,10 @@ export class TelegramBot {
       }
 
       try {
-        await ctx.reply("🔍 Fetching positions...");
+        await ctx.reply("🔍 Fetching all positions...");
 
         const chatId = ctx.chat.id.toString();
-        const allPositions = await getUserPositions(address, 50);
+        const allPositions = await getUserPositions(address); // Fetch all positions
 
         // Filter out ended events
         const now = new Date();

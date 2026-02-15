@@ -132,9 +132,9 @@ class TelegramBot {
                 return ctx.reply("❌ Invalid Ethereum address.");
             }
             try {
-                await ctx.reply("🔍 Fetching positions...");
+                await ctx.reply("🔍 Fetching all positions...");
                 const chatId = ctx.chat.id.toString();
-                const allPositions = await (0, positionsService_js_1.getUserPositions)(address, 50);
+                const allPositions = await (0, positionsService_js_1.getUserPositions)(address); // Fetch all positions
                 // Filter out ended events
                 const now = new Date();
                 const positions = allPositions.filter((p) => {
