@@ -8,11 +8,45 @@ import { getUserPositions, type Position } from "../services/positionsService.js
 export class TelegramBot {
   private bot: Bot;
   private queries: Queries;
+  private readonly MAX_MESSAGE_LENGTH = 4096;
 
   constructor(token: string, queries: Queries) {
     this.bot = new Bot(token);
     this.queries = queries;
     this.registerCommands();
+  }
+
+  private async sendLongMessage(chatId: string, text: string): Promise<void> {
+    if (text.length <= this.MAX_MESSAGE_LENGTH) {
+      await this.bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
+      return;
+    }
+
+    // Split by positions (looking for numbered list items)
+    const lines = text.split("\n");
+    let currentChunk = "";
+    let chunkCount = 0;
+
+    for (const line of lines) {
+      // If adding this line would exceed limit, send current chunk
+      if (currentChunk.length + line.length + 1 > this.MAX_MESSAGE_LENGTH) {
+        if (currentChunk) {
+          chunkCount++;
+          await this.bot.api.sendMessage(chatId, currentChunk, {
+            parse_mode: "HTML",
+          });
+          currentChunk = "";
+        }
+      }
+      currentChunk += line + "\n";
+    }
+
+    // Send remaining chunk
+    if (currentChunk) {
+      await this.bot.api.sendMessage(chatId, currentChunk, {
+        parse_mode: "HTML",
+      });
+    }
   }
 
   private registerCommands(): void {
@@ -187,7 +221,8 @@ export class TelegramBot {
         // Save current positions as new snapshot
         this.queries.savePositionSnapshots(chatId, address, positions);
 
-        return ctx.reply(msg, { parse_mode: "HTML" });
+        // Send message (will split if too long)
+        await this.sendLongMessage(chatId, msg);
       } catch (err) {
         console.error("[TelegramBot] Failed to fetch positions:", err);
         return ctx.reply("❌ Failed to fetch positions. Please try again later.");

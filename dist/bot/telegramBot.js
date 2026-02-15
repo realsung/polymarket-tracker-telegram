@@ -8,10 +8,40 @@ const positionsService_js_1 = require("../services/positionsService.js");
 class TelegramBot {
     bot;
     queries;
+    MAX_MESSAGE_LENGTH = 4096;
     constructor(token, queries) {
         this.bot = new grammy_1.Bot(token);
         this.queries = queries;
         this.registerCommands();
+    }
+    async sendLongMessage(chatId, text) {
+        if (text.length <= this.MAX_MESSAGE_LENGTH) {
+            await this.bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
+            return;
+        }
+        // Split by positions (looking for numbered list items)
+        const lines = text.split("\n");
+        let currentChunk = "";
+        let chunkCount = 0;
+        for (const line of lines) {
+            // If adding this line would exceed limit, send current chunk
+            if (currentChunk.length + line.length + 1 > this.MAX_MESSAGE_LENGTH) {
+                if (currentChunk) {
+                    chunkCount++;
+                    await this.bot.api.sendMessage(chatId, currentChunk, {
+                        parse_mode: "HTML",
+                    });
+                    currentChunk = "";
+                }
+            }
+            currentChunk += line + "\n";
+        }
+        // Send remaining chunk
+        if (currentChunk) {
+            await this.bot.api.sendMessage(chatId, currentChunk, {
+                parse_mode: "HTML",
+            });
+        }
     }
     registerCommands() {
         this.bot.command("start", (ctx) => {
@@ -146,7 +176,8 @@ class TelegramBot {
                 const msg = (0, alertFormatter_js_1.formatPositions)(positionsWithDiff, address, label, closedPositions);
                 // Save current positions as new snapshot
                 this.queries.savePositionSnapshots(chatId, address, positions);
-                return ctx.reply(msg, { parse_mode: "HTML" });
+                // Send message (will split if too long)
+                await this.sendLongMessage(chatId, msg);
             }
             catch (err) {
                 console.error("[TelegramBot] Failed to fetch positions:", err);
