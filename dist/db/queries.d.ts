@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { WatchedWallet, TradeRecord, Trade } from "../types/index.js";
+import type { Position } from "../services/positionsService.js";
 export declare class Queries {
     private db;
     private stmts;
@@ -18,4 +19,6 @@ export declare class Queries {
     isTradeProcessed(txHash: string, walletAddress: string): boolean;
     getLastTimestamp(key: string): number | null;
     setLastTimestamp(key: string, timestamp: number): void;
+    getPositionSnapshots(chatId: string, walletAddress: string): Map<string, Position>;
+    savePositionSnapshots(chatId: string, walletAddress: string, positions: Position[]): void;
 }

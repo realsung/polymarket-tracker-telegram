@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatTradeAlert = formatTradeAlert;
 exports.formatTradeHistory = formatTradeHistory;
+exports.formatPositions = formatPositions;
 function escapeHtml(text) {
     return text
         .replace(/&/g, "&amp;")
@@ -70,6 +71,77 @@ function formatTradeHistory(trades) {
         msg += `${emoji} <b>${t.side}</b> ${escapeHtml(t.outcome)} — $${formatNumber(t.usdc_amount)}\n`;
         msg += `   ${escapeHtml(t.question).slice(0, 60)}${t.question.length > 60 ? "..." : ""}\n`;
         msg += `   ${shortAddr} · ${date}\n\n`;
+    }
+    return msg;
+}
+function formatPositions(positions, address, label, closedPositions) {
+    if (positions.length === 0 && (!closedPositions || closedPositions.length === 0)) {
+        return "No open positions found.";
+    }
+    const walletDisplay = label
+        ? `${escapeHtml(label)} (${shortenAddress(address)})`
+        : shortenAddress(address);
+    let totalValue = 0;
+    let totalPnl = 0;
+    for (const p of positions) {
+        totalValue += p.currentValue;
+        totalPnl += p.cashPnl;
+    }
+    let msg = `💼 <b>Positions for ${walletDisplay}</b>\n\n`;
+    msg += `📊 <b>Summary:</b>\n`;
+    msg += `   Total Value: $${formatNumber(totalValue)}\n`;
+    msg += `   Total P&L: ${totalPnl >= 0 ? "+" : ""}$${formatNumber(totalPnl)} (${totalPnl >= 0 ? "+" : ""}${((totalPnl / (totalValue - totalPnl)) * 100).toFixed(1)}%)\n`;
+    msg += `   Positions: ${positions.length}\n\n`;
+    // Show closed positions first if any
+    if (closedPositions && closedPositions.length > 0) {
+        msg += `<b>❌ Closed Positions:</b>\n\n`;
+        for (const p of closedPositions.slice(0, 3)) {
+            msg += `• <b>${escapeHtml(p.outcome)}</b> - ${escapeHtml(p.title).slice(0, 40)}...\n`;
+            msg += `  Closed: ${formatNumber(p.size)} shares\n\n`;
+        }
+        if (closedPositions.length > 3) {
+            msg += `... and ${closedPositions.length - 3} more closed\n\n`;
+        }
+    }
+    msg += `<b>Top Positions:</b>\n\n`;
+    for (let i = 0; i < Math.min(positions.length, 10); i++) {
+        const p = positions[i];
+        const pnlEmoji = p.cashPnl > 0 ? "📈" : p.cashPnl < 0 ? "📉" : "➡️";
+        const sign = p.cashPnl >= 0 ? "+" : "";
+        // Highlight new or changed positions
+        let prefix = "";
+        if (p.isNew) {
+            prefix = "🆕 ";
+        }
+        else if (p.sizeDiff && Math.abs(p.sizeDiff) > 0.01) {
+            prefix = "📊 ";
+        }
+        msg += `${i + 1}. ${prefix}<b>${escapeHtml(p.outcome)}</b>\n`;
+        msg += `   ${escapeHtml(p.title).slice(0, 50)}${p.title.length > 50 ? "..." : ""}\n`;
+        // Show size with diff if available
+        if (p.sizeDiff && Math.abs(p.sizeDiff) > 0.01) {
+            const sizeSign = p.sizeDiff > 0 ? "+" : "";
+            msg += `   Size: ${formatNumber(p.size)} (${sizeSign}${formatNumber(p.sizeDiff)}) @ avg $${formatNumber(p.avgPrice, 4)}\n`;
+        }
+        else {
+            msg += `   Size: ${formatNumber(p.size)} @ avg $${formatNumber(p.avgPrice, 4)}\n`;
+        }
+        // Show P&L with diff if available
+        if (p.pnlDiff && Math.abs(p.pnlDiff) > 0.01) {
+            const pnlDiffSign = p.pnlDiff > 0 ? "+" : "";
+            msg += `   ${pnlEmoji} P&L: ${sign}$${formatNumber(p.cashPnl)} (${pnlDiffSign}$${formatNumber(p.pnlDiff)}) [${sign}${p.percentPnl.toFixed(1)}%]\n`;
+        }
+        else {
+            msg += `   ${pnlEmoji} P&L: ${sign}$${formatNumber(p.cashPnl)} (${sign}${p.percentPnl.toFixed(1)}%)\n`;
+        }
+        msg += `   Current: $${formatNumber(p.currentValue)} @ $${formatNumber(p.curPrice, 4)}\n`;
+        if (p.redeemable) {
+            msg += `   ✅ Redeemable\n`;
+        }
+        msg += `\n`;
+    }
+    if (positions.length > 10) {
+        msg += `... and ${positions.length - 10} more positions\n`;
     }
     return msg;
 }

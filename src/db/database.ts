@@ -44,11 +44,30 @@ export function initDatabase(dbPath: string): Database.Database {
       last_timestamp INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS position_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT NOT NULL,
+      wallet_address TEXT NOT NULL,
+      asset TEXT NOT NULL,
+      condition_id TEXT NOT NULL,
+      size REAL NOT NULL,
+      avg_price REAL NOT NULL,
+      current_value REAL NOT NULL,
+      cash_pnl REAL NOT NULL,
+      percent_pnl REAL NOT NULL,
+      cur_price REAL NOT NULL,
+      outcome TEXT NOT NULL,
+      title TEXT NOT NULL,
+      fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(chat_id, wallet_address, asset)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_wallets_address ON watched_wallets(address);
     CREATE INDEX IF NOT EXISTS idx_wallets_chat_id ON watched_wallets(chat_id);
     CREATE INDEX IF NOT EXISTS idx_trades_tx_hash ON trades(tx_hash);
     CREATE INDEX IF NOT EXISTS idx_trades_chat_id ON trades(chat_id);
     CREATE INDEX IF NOT EXISTS idx_trades_wallet ON trades(wallet_address);
+    CREATE INDEX IF NOT EXISTS idx_snapshots_wallet ON position_snapshots(chat_id, wallet_address);
   `);
 
   return db;

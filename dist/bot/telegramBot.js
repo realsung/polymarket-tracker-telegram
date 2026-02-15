@@ -4,6 +4,7 @@ exports.TelegramBot = void 0;
 const grammy_1 = require("grammy");
 const ethers_1 = require("ethers");
 const alertFormatter_js_1 = require("./alertFormatter.js");
+const positionsService_js_1 = require("../services/positionsService.js");
 class TelegramBot {
     bot;
     queries;
@@ -20,6 +21,7 @@ class TelegramBot {
                 `/watch &lt;address&gt; [label] — Start tracking a wallet\n` +
                 `/unwatch &lt;address&gt; — Stop tracking a wallet\n` +
                 `/list — Show tracked wallets\n` +
+                `/positions &lt;address&gt; — View current positions\n` +
                 `/history [count] — Recent trade history\n` +
                 `/status — Bot status`;
             return ctx.reply(msg, { parse_mode: "HTML" });
@@ -89,6 +91,59 @@ class TelegramBot {
                 `Tracked wallets: ${wallets.length}\n` +
                 `Status: Running`;
             return ctx.reply(msg, { parse_mode: "HTML" });
+        });
+        this.bot.command("positions", async (ctx) => {
+            const text = ctx.message?.text ?? "";
+            const address = text.split(/\s+/)[1];
+            if (!address) {
+                return ctx.reply("Usage: /positions <address>");
+            }
+            if (!ethers_1.ethers.isAddress(address)) {
+                return ctx.reply("❌ Invalid Ethereum address.");
+            }
+            try {
+                await ctx.reply("🔍 Fetching positions...");
+                const chatId = ctx.chat.id.toString();
+                const positions = await (0, positionsService_js_1.getUserPositions)(address, 50);
+                // Get previous snapshots
+                const previousSnapshots = this.queries.getPositionSnapshots(chatId, address);
+                // Compare and create diffs
+                const positionsWithDiff = [];
+                const closedPositions = [];
+                for (const pos of positions) {
+                    const prev = previousSnapshots.get(pos.asset);
+                    if (!prev) {
+                        // New position
+                        positionsWithDiff.push({ ...pos, isNew: true });
+                    }
+                    else {
+                        // Existing position - calculate diffs
+                        positionsWithDiff.push({
+                            ...pos,
+                            sizeDiff: pos.size - prev.size,
+                            valueDiff: pos.currentValue - prev.currentValue,
+                            pnlDiff: pos.cashPnl - prev.cashPnl,
+                        });
+                        previousSnapshots.delete(pos.asset);
+                    }
+                }
+                // Remaining snapshots are closed positions
+                for (const [, prev] of previousSnapshots) {
+                    closedPositions.push(prev);
+                }
+                // Try to get label if this is a watched wallet
+                const wallets = this.queries.listWallets(chatId);
+                const wallet = wallets.find((w) => w.address.toLowerCase() === address.toLowerCase());
+                const label = wallet?.label;
+                const msg = (0, alertFormatter_js_1.formatPositions)(positionsWithDiff, address, label, closedPositions);
+                // Save current positions as new snapshot
+                this.queries.savePositionSnapshots(chatId, address, positions);
+                return ctx.reply(msg, { parse_mode: "HTML" });
+            }
+            catch (err) {
+                console.error("[TelegramBot] Failed to fetch positions:", err);
+                return ctx.reply("❌ Failed to fetch positions. Please try again later.");
+            }
         });
     }
     async sendTradeAlert(trade, chatId, label) {

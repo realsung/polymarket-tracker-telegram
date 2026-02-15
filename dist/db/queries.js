@@ -23,6 +23,21 @@ class Queries {
             getLastTimestamp: this.db.prepare(`SELECT last_timestamp FROM poll_cursor WHERE key = ?`),
             setLastTimestamp: this.db.prepare(`INSERT INTO poll_cursor (key, last_timestamp) VALUES (?, ?)
          ON CONFLICT(key) DO UPDATE SET last_timestamp = excluded.last_timestamp`),
+            getPositionSnapshots: this.db.prepare(`SELECT * FROM position_snapshots WHERE chat_id = ? AND lower(wallet_address) = lower(?)`),
+            upsertPositionSnapshot: this.db.prepare(`INSERT INTO position_snapshots (chat_id, wallet_address, asset, condition_id, size, avg_price, current_value, cash_pnl, percent_pnl, cur_price, outcome, title)
+         VALUES (@chat_id, @wallet_address, @asset, @condition_id, @size, @avg_price, @current_value, @cash_pnl, @percent_pnl, @cur_price, @outcome, @title)
+         ON CONFLICT(chat_id, wallet_address, asset)
+         DO UPDATE SET
+           size = excluded.size,
+           avg_price = excluded.avg_price,
+           current_value = excluded.current_value,
+           cash_pnl = excluded.cash_pnl,
+           percent_pnl = excluded.percent_pnl,
+           cur_price = excluded.cur_price,
+           outcome = excluded.outcome,
+           title = excluded.title,
+           fetched_at = datetime('now')`),
+            deletePositionSnapshots: this.db.prepare(`DELETE FROM position_snapshots WHERE chat_id = ? AND lower(wallet_address) = lower(?)`),
         };
     }
     addWallet(chatId, address, label) {
@@ -74,6 +89,46 @@ class Queries {
     }
     setLastTimestamp(key, timestamp) {
         this.stmts.setLastTimestamp.run(key, timestamp);
+    }
+    getPositionSnapshots(chatId, walletAddress) {
+        const rows = this.stmts.getPositionSnapshots.all(chatId, walletAddress.toLowerCase());
+        const map = new Map();
+        for (const row of rows) {
+            map.set(row.asset, {
+                asset: row.asset,
+                conditionId: row.condition_id,
+                size: row.size,
+                avgPrice: row.avg_price,
+                currentValue: row.current_value,
+                cashPnl: row.cash_pnl,
+                percentPnl: row.percent_pnl,
+                curPrice: row.cur_price,
+                outcome: row.outcome,
+                title: row.title,
+            });
+        }
+        return map;
+    }
+    savePositionSnapshots(chatId, walletAddress, positions) {
+        // Delete old snapshots first
+        this.stmts.deletePositionSnapshots.run(chatId, walletAddress.toLowerCase());
+        // Insert new snapshots
+        for (const pos of positions) {
+            this.stmts.upsertPositionSnapshot.run({
+                chat_id: chatId,
+                wallet_address: walletAddress.toLowerCase(),
+                asset: pos.asset,
+                condition_id: pos.conditionId,
+                size: pos.size,
+                avg_price: pos.avgPrice,
+                current_value: pos.currentValue,
+                cash_pnl: pos.cashPnl,
+                percent_pnl: pos.percentPnl,
+                cur_price: pos.curPrice,
+                outcome: pos.outcome,
+                title: pos.title,
+            });
+        }
     }
 }
 exports.Queries = Queries;

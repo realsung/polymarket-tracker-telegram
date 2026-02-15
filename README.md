@@ -77,6 +77,7 @@ docker compose up -d
 | `/watch <address> [label]` | 지갑 주소 모니터링 시작 |
 | `/unwatch <address>` | 지갑 주소 모니터링 중지 |
 | `/list` | 감시 중인 지갑 목록 |
+| `/positions <address>` | 특정 지갑의 현재 포지션 조회 (P&L 포함) |
 | `/history [count]` | 최근 거래 이력 (기본 10, 최대 50) |
 | `/status` | 봇 상태 확인 |
 
