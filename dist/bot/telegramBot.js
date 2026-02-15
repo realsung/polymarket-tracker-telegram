@@ -104,7 +104,15 @@ class TelegramBot {
             try {
                 await ctx.reply("🔍 Fetching positions...");
                 const chatId = ctx.chat.id.toString();
-                const positions = await (0, positionsService_js_1.getUserPositions)(address, 50);
+                const allPositions = await (0, positionsService_js_1.getUserPositions)(address, 50);
+                // Filter out ended events
+                const now = new Date();
+                const positions = allPositions.filter((p) => {
+                    if (!p.endDate)
+                        return true;
+                    const endDate = new Date(p.endDate);
+                    return endDate > now;
+                });
                 // Get previous snapshots
                 const previousSnapshots = this.queries.getPositionSnapshots(chatId, address);
                 // Compare and create diffs

@@ -96,15 +96,15 @@ function formatPositions(positions, address, label, closedPositions) {
     if (closedPositions && closedPositions.length > 0) {
         msg += `<b>❌ Closed Positions:</b>\n\n`;
         for (const p of closedPositions.slice(0, 3)) {
-            msg += `• <b>${escapeHtml(p.outcome)}</b> - ${escapeHtml(p.title).slice(0, 40)}...\n`;
+            msg += `• <b>${escapeHtml(p.outcome)}</b> - ${escapeHtml(p.title)}\n`;
             msg += `  Closed: ${formatNumber(p.size)} shares\n\n`;
         }
         if (closedPositions.length > 3) {
             msg += `... and ${closedPositions.length - 3} more closed\n\n`;
         }
     }
-    msg += `<b>Top Positions:</b>\n\n`;
-    for (let i = 0; i < Math.min(positions.length, 10); i++) {
+    msg += `<b>All Positions:</b>\n\n`;
+    for (let i = 0; i < positions.length; i++) {
         const p = positions[i];
         const pnlEmoji = p.cashPnl > 0 ? "📈" : p.cashPnl < 0 ? "📉" : "➡️";
         const sign = p.cashPnl >= 0 ? "+" : "";
@@ -117,7 +117,7 @@ function formatPositions(positions, address, label, closedPositions) {
             prefix = "📊 ";
         }
         msg += `${i + 1}. ${prefix}<b>${escapeHtml(p.outcome)}</b>\n`;
-        msg += `   ${escapeHtml(p.title).slice(0, 50)}${p.title.length > 50 ? "..." : ""}\n`;
+        msg += `   ${escapeHtml(p.title)}\n`;
         // Show size with diff if available
         if (p.sizeDiff && Math.abs(p.sizeDiff) > 0.01) {
             const sizeSign = p.sizeDiff > 0 ? "+" : "";
@@ -139,9 +139,6 @@ function formatPositions(positions, address, label, closedPositions) {
             msg += `   ✅ Redeemable\n`;
         }
         msg += `\n`;
-    }
-    if (positions.length > 10) {
-        msg += `... and ${positions.length - 10} more positions\n`;
     }
     return msg;
 }
